@@ -71,6 +71,8 @@ server.route({
 
         //  https://github.com/brianc/node-pg-pool    
 
+        var timestampValue = new Date().getTime();
+
     pool.query(
       // {
     // name: 'insert driver',
@@ -83,7 +85,7 @@ server.route({
     //          'Notes on driver', '1', '2016-09-21T00:48:32.055Z', 'SYSTEM', '2016-09-21T00:48:32.055Z', 'SYSTEM']
 
     // text: 
-    'INSERT INTO ' + SCHEMA_NAME + '.' + DRIVER_TABLE + ' values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)',
+    'INSERT INTO ' + SCHEMA_NAME + '.' + DRIVER_TABLE + ' values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)',
     // values: 
     [
               '2016-09-01T00:00:00.000Z', '0.0.0.0', '60002', 20, 'after 10am', 
@@ -92,10 +94,33 @@ server.route({
 //   "DriverCollectionZIP" character varying(5) NOT NULL,
 //   "DriverCollectionRadius" integer NOT NULL,
 //   "AvailableDriveTimesJSON" character varying(2000),
-              '2016-09-01T00:00:00.001Z', '12:00:00+00', '13:00:00+00', 'IL', 'CHICAGO', 
-              'THE L2', 'THE POLLS', 'TBD', 4, '1',
-              'Notes on driver', '1', '2016-09-21T00:48:32.055Z', 'SYSTEM', '2016-09-21T00:48:32.055Z', 
-              'SYSTEM'
+              false, 2, false, 'ill. ins', '1234', 
+//   "DriverCanLoadRiderWithWheelchair" boolean NOT NULL DEFAULT false,
+//   "SeatCount" integer DEFAULT 1,
+//   "DriverHasInsurance" boolean NOT NULL DEFAULT false,
+//   "DriverInsuranceProviderName" character varying(255),
+//   "DriverInsurancePolicyNumber" character varying(50),
+              'IL', '1234', 'fred', 'smith', false,
+//   "DriverLicenseState" character(2),
+//   "DriverLicenseNumber" character varying(50),
+//   "DriverFirstName" character varying(255) NOT NULL,
+//   "DriverLastName" character varying(255) NOT NULL,
+//   "PermissionCanRunBackgroundCheck" boolean NOT NULL DEFAULT false,
+              'f@gmail.xxx', '555-123-4567', 555, false, false, 
+//   "DriverEmail" character varying(255),
+//   "DriverPhone" character varying(20),
+//   "DriverAreaCode" integer,
+//   "DriverEmailValidated" boolean NOT NULL DEFAULT false,
+//   "DriverPhoneValidated" boolean NOT NULL DEFAULT false,
+              false, 'misc', false, false, false, 
+//   "DrivingOnBehalfOfOrganization" boolean NOT NULL DEFAULT false,
+//   "DrivingOBOOrganizationName" character varying(255),
+//   "RidersCanSeeDriverDetails" boolean NOT NULL DEFAULT false,
+//   "DriverWillNotTalkPolitics" boolean NOT NULL DEFAULT false,
+//   "ReadyToMatch" boolean NOT NULL DEFAULT false,
+
+              false
+//   "PleaseStayInTouch" boolean NOT NULL DEFAULT false
             ]
 
 //  DriverID: 2,
