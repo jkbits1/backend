@@ -19,6 +19,7 @@
   "homepage": "https://github.com/jkbits1/backend#readme",
   "dependencies": {
     "hapi": "^15.0.3",
+    "moment": "^2.15.1",
     "pg": "^6.1.0"
   }
 }
