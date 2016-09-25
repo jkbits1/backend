@@ -10,8 +10,10 @@ var pool = new Pool(config);
 const server = new Hapi.Server();
 
 const DEFAULT_PORT = 8000;
-const SCHEMA_NAME = '"NOV2016"';
-const DRIVER_TABLE = '"DRIVER"';
+const SCHEMA_NAME = '"STAGE"';
+const DRIVER_TABLE = '"WEBSUBMISSION_DRIVER"';
+
+var appPort = DEFAULT_PORT;
 
 if (process.env.NODE_ENV !== undefined) {
   console.error("NODE_ENV exists");
@@ -32,7 +34,7 @@ else {
   console.error("no NODE_ENV found");
 }
 
-server.connection({ port: DEFAULT_PORT });
+server.connection({ port: appPort });
 
 var rowId = 8;
 
@@ -65,9 +67,12 @@ server.route({
 // INSERT INTO "NOV2016"."DRIVER"
 // values(3, 'Bill', '602-481-6000', 'testing2@ericanderson.com', '0', '2016-09-01T00:00:00.000Z', '12:00:00+00', '13:00:00+00', 'IL', 'CHICAGO', 'THE L2', 'THE POLLS', 'TBD', 4, '1',
 //              'Notes on driver', '1', '2016-09-21T00:48:32.055Z', 'SYSTEM', '2016-09-21T00:48:32.055Z', 'SYSTEM')
-             
 
-    pool.query({
+
+        //  https://github.com/brianc/node-pg-pool    
+
+    pool.query(
+      // {
     // name: 'insert driver',
     // text: 'INSERT INTO "NOV2016"."DRIVER"(Id, Name, Phone, Email, EmailValidated, RideDate, RideTimeStart, RideTimeEnd, State, City, Origin, RiderDestination, Capability, Seats, DriverHasInsurance, Notes, Active, CreatedTimestamp, CreatedBy, ModifiedTimestamp, ModifiedBy) values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)',
     // values: [4, 'George', '602-481-6000', 'testing2@ericanderson.com', '0', '2016-09-01T00:00:00.000Z', '12:00:00+00', '13:00:00+00', 'IL', 'CHICAGO', 'THE L2', 'THE POLLS', 'TBD', 4, '1',
@@ -77,9 +82,21 @@ server.route({
     // values: [4, 'George', '602-481-6000', 'testing2@ericanderson.com', '0', '2016-09-01T00:00:00.000Z', '12:00:00+00', '13:00:00+00', 'IL', 'CHICAGO', 'THE L2', 'THE POLLS', 'TBD', 4, '1',
     //          'Notes on driver', '1', '2016-09-21T00:48:32.055Z', 'SYSTEM', '2016-09-21T00:48:32.055Z', 'SYSTEM']
 
-    text: 'INSERT INTO ' + SCHEMA_NAME + '.' + DRIVER_TABLE + ' values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)',
-    values: [rowId++, 'George', '602-481-6000', 'testing2@ericanderson.com', '0', '2016-09-01T00:00:00.000Z', '12:00:00+00', '13:00:00+00', 'IL', 'CHICAGO', 'THE L2', 'THE POLLS', 'TBD', 4, '1',
-             'Notes on driver', '1', '2016-09-21T00:48:32.055Z', 'SYSTEM', '2016-09-21T00:48:32.055Z', 'SYSTEM']
+    // text: 
+    'INSERT INTO ' + SCHEMA_NAME + '.' + DRIVER_TABLE + ' values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)',
+    // values: 
+    [
+              '2016-09-01T00:00:00.000Z', '0.0.0.0', '60002', 20, 'after 10am', 
+//   "TimeStamp" timestamp without time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+//   "IPAddress" character varying(20),
+//   "DriverCollectionZIP" character varying(5) NOT NULL,
+//   "DriverCollectionRadius" integer NOT NULL,
+//   "AvailableDriveTimesJSON" character varying(2000),
+              '2016-09-01T00:00:00.001Z', '12:00:00+00', '13:00:00+00', 'IL', 'CHICAGO', 
+              'THE L2', 'THE POLLS', 'TBD', 4, '1',
+              'Notes on driver', '1', '2016-09-21T00:48:32.055Z', 'SYSTEM', '2016-09-21T00:48:32.055Z', 
+              'SYSTEM'
+            ]
 
 //  DriverID: 2,
 //   Name: 'John Smith',
@@ -103,7 +120,15 @@ server.route({
 //   ModifiedTimestamp: 2016-09-21T00:48:32.055Z,
 //   ModifiedBy: 'SYSTEM'
 
-});
+// }
+)
+.then(res => {
+    console.log('hello from', res.rows[0].name)
+  })
+  .catch(e => {
+    console.error('query error', e.message, e.stack)
+  })
+  ;
 
     reply('row inserted');
   }
@@ -116,3 +141,54 @@ server.start((err) => {
     }
     console.log(`Server running at: ${server.info.uri}`);
 });
+
+pool.on('error', (err, client) => {
+
+  if (err) {
+    console.error("db err" + err);
+  } 
+});
+
+
+// CREATE TABLE "STAGE"."WEBSUBMISSION_DRIVER"
+// (
+//   "TimeStamp" timestamp without time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+//   "IPAddress" character varying(20),
+//   "DriverCollectionZIP" character varying(5) NOT NULL,
+//   "DriverCollectionRadius" integer NOT NULL,
+//   "AvailableDriveTimesJSON" character varying(2000),
+
+//   "DriverCanLoadRiderWithWheelchair" boolean NOT NULL DEFAULT false,
+//   "SeatCount" integer DEFAULT 1,
+//   "DriverHasInsurance" boolean NOT NULL DEFAULT false,
+//   "DriverInsuranceProviderName" character varying(255),
+//   "DriverInsurancePolicyNumber" character varying(50),
+
+//   "DriverLicenseState" character(2),
+//   "DriverLicenseNumber" character varying(50),
+//   "DriverFirstName" character varying(255) NOT NULL,
+//   "DriverLastName" character varying(255) NOT NULL,
+//   "PermissionCanRunBackgroundCheck" boolean NOT NULL DEFAULT false,
+
+//   "DriverEmail" character varying(255),
+//   "DriverPhone" character varying(20),
+//   "DriverAreaCode" integer,
+//   "DriverEmailValidated" boolean NOT NULL DEFAULT false,
+//   "DriverPhoneValidated" boolean NOT NULL DEFAULT false,
+
+//   "DrivingOnBehalfOfOrganization" boolean NOT NULL DEFAULT false,
+//   "DrivingOBOOrganizationName" character varying(255),
+//   "RidersCanSeeDriverDetails" boolean NOT NULL DEFAULT false,
+//   "DriverWillNotTalkPolitics" boolean NOT NULL DEFAULT false,
+//   "ReadyToMatch" boolean NOT NULL DEFAULT false,
+
+//   "PleaseStayInTouch" boolean NOT NULL DEFAULT false
+// )
+// WITH (
+//   OIDS=FALSE
+// );
+// ALTER TABLE "STAGE"."WEBSUBMISSION_DRIVER"
+//   OWNER TO carpool_admins;
+// GRANT ALL ON TABLE "STAGE"."WEBSUBMISSION_DRIVER" TO carpool_admins;
+// GRANT INSERT ON TABLE "STAGE"."WEBSUBMISSION_DRIVER" TO carpool_web_role;
+// GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE "STAGE"."WEBSUBMISSION_DRIVER" TO carpool_role;
