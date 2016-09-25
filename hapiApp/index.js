@@ -4,6 +4,8 @@ const Hapi = require('hapi');
 
 var config = require('./dbInfo.js');
 
+var moment = require('moment');
+
 var Pool = require('pg').Pool;
 var pool = new Pool(config);
 
@@ -71,7 +73,8 @@ server.route({
 
         //  https://github.com/brianc/node-pg-pool    
 
-        var timestampValue = new Date().getTime();
+        var timestampValue = // new Date().getTime();
+               moment().utc().format("YYYY-MM-DDTHH:mm:ss") + "Z"
 
     pool.query(
       // {
@@ -88,7 +91,9 @@ server.route({
     'INSERT INTO ' + SCHEMA_NAME + '.' + DRIVER_TABLE + ' values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)',
     // values: 
     [
-              '2016-09-01T00:00:00.000Z', '0.0.0.0', '60002', 20, 'after 10am', 
+              // '2016-09-01T00:00:00.000Z'
+              timestampValue.toString()
+              , '0.0.0.0', '60002', 20, 'after 10am', 
 //   "TimeStamp" timestamp without time zone NOT NULL DEFAULT timezone('utc'::text, now()),
 //   "IPAddress" character varying(20),
 //   "DriverCollectionZIP" character varying(5) NOT NULL,
