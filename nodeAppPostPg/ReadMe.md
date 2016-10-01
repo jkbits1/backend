@@ -30,6 +30,7 @@ export PGPORT=5432
 // db env vars - socket
 // export PGHOST=/tmp
 // export PGDATABASE=carpool
+// export PGUSER=carpool_web
 
 // node env var
 export PORT=3000
