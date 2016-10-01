@@ -121,7 +121,7 @@ server.register({
           throw err;
       }
 
-      console.log(`Server running at: ${server.info.uri}`);
+      console.log(`Server running at: ${server.info.uri} \n`);
 
       console.log("driver ins: " + dbGetInsertDriverString());
       console.log("rider ins: " + dbGetInsertRiderString());
