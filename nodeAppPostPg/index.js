@@ -2,7 +2,9 @@
 
 const Hapi        = require('hapi');
 const moment      = require('moment');
-var   Pool        = require('pg').Pool;
+const Pool        = require('pg').Pool;
+const Good        = require('good');
+const GoodFile    = require('good-file');
 
 const config      = require('./dbInfo.js');
 const logOptions  = require('./logInfo.js');
@@ -59,6 +61,7 @@ config.port       = process.env.PGPORT;
 const pool = new Pool();
 const server = new Hapi.Server();
 
+const OPS_INTERVAL  = 300000; // 5 mins
 const DEFAULT_PORT  = process.env.PORT || 3000;
 
 // for db carpool.UPPERCASE
@@ -74,7 +77,13 @@ const RIDER_TABLE   = 'websubmission_rider';
 const DRIVER_ROUTE  = 'driver';
 const RIDER_ROUTE  = 'rider';
 
+console.log("driver ins: " + dbGetInsertDriverString());
+console.log("rider ins: " + dbGetInsertRiderString());
+console.log("ops interval:" + logOptions.ops.interval);
+
 var appPort = DEFAULT_PORT;
+
+logOptions.ops.interval = OPS_INTERVAL;
 
 server.connection({ 
   port: appPort, 
@@ -116,7 +125,7 @@ server.route({
 
     req.log();
 
-    console.log("payload: " + payload);
+    console.log("driver payload: " + JSON.stringify(payload, null, 4));
     console.log("driver zip: " + payload.DriverCollectionZIP);
 
     dbInsertData(payload, pool, dbGetInsertDriverString, getDriverPayloadAsArray);
@@ -133,7 +142,7 @@ server.route({
 
     req.log();
 
-    console.log("payload: " + payload);
+    console.log("rider payload: " + JSON.stringify(payload, null, 4));
     console.log("rider zip: " + payload.RiderCollectionZIP);
 
     dbInsertData(payload, pool, dbGetInsertRiderString, getRiderPayloadAsArray);
@@ -143,9 +152,55 @@ server.route({
 });
 
 server.register({
-    register: require('good'),
-    logOptions
-  },
+    register: Good,
+    options:
+        logOptions
+
+    //  {
+    //    opsInterval: 3000,
+    //    reporters: [{
+    //      reporter: require('good-console'),
+    //      events: { ops: '*', response: '*', error: '*'
+    //     }
+    //    }]
+    //  } 
+//     {
+//     'ops-console': [{
+//         module: 'good-squeeze',
+//         name: 'Squeeze',
+//         args: [{ ops: '*' }]
+//     }, {
+//         module: 'good-squeeze',
+//         name: 'SafeJson'
+//     }, 'stdout']
+// }
+    // options: {
+    //     reporters: [{
+    //         reporter: GoodFile,
+    //         events: {
+    //             response: '*',
+    //             log: '*'
+    //         },
+    //         config: {
+    //             path: '.',
+    //             rotate: 'daily'
+    //         }
+    //     }]
+    // }
+//      options: {
+//     reporters: {
+//       fileReporter: 
+//      [
+//         {
+//             reporter: require('good-file'),
+//             events: { response: '*' },
+//             config: 'access.log'                 // The file to log to
+//         }
+//     ]
+//       }
+// }
+  }
+  ,
   err => {
     if (err) {
       return console.error(err);
@@ -165,12 +220,25 @@ server.register({
 server.on('request', function (request, event, tags) {
 
   // Include the Requestor's IP Address on every log
-  if( !event.remoteAddress ) event.remoteAddress = request.headers['x-forwarded-for'] || request.info.remoteAddress;
+  if( !event.remoteAddress ) {
+    event.remoteAddress = request.headers['x-forwarded-for'] || request.info.remoteAddress;
+  }
 
   // Put the first part of the URL into the tags
-  if(request && request.url && event && event.tags) event.tags.push(request.url.path.split('/')[1]);
+  if(request && request.url && event && event.tags) {
+    event.tags.push(request.url.path.split('/')[1]);
+  }
 
-  console.log('%j', event) ;
+  console.log('server req: %j', event) ;
+});
+
+server.on('response', function (request) {
+    console.log(
+        "server resp: " 
+      + request.info.remoteAddress 
+      + ': ' + request.method.toUpperCase() 
+      + ' ' + request.url.path 
+      + ' --> ' + request.response.statusCode);
 });
 
 pool.on('error', (err, client) => {
@@ -180,26 +248,28 @@ pool.on('error', (err, client) => {
 });
 
 function dbInsertData(payload, pool, fnInsertString, fnPayloadArray) {
-    pool.query(
-      fnInsertString(),
-      fnPayloadArray(payload)
-    )
-    .then(result => {
-      if (result !== undefined) {
-        console.log('insert: ', result)
-      }
-      else {
-        console.error('insert made')
-      }
-    })
-    .catch(e => {
-      if (e !== undefined && e.message !== undefined && e.stack !== undefined) {
-        console.error('query error', e.message, e.stack)
-      }
-      else {
-        console.error('query error.')
-      }
-    });
+  var insertString = fnInsertString();
+
+  pool.query(
+    insertString,
+    fnPayloadArray(payload)
+  )
+  .then(result => {
+    if (result !== undefined) {
+      console.log('insert: ', result)
+    }
+    else {
+      console.error('insert made')
+    }
+  })
+  .catch(e => {
+    if (e !== undefined && e.message !== undefined && e.stack !== undefined) {
+      console.error('query error', e.message, e.stack)
+    }
+    else {
+      console.error('query error.')
+    }
+  });
 }
 
 function dbGetQueryString () {
@@ -294,4 +364,3 @@ function getDriverPayloadAsArray(payload) {
       //   "PleaseStayInTouch" boolean NOT NULL DEFAULT false
     ]
 }
-

@@ -4,10 +4,12 @@ module.exports = {
     response: ['payload']
   },  
   ops: {
-      interval: 1000
+      // overridden in main app
+      interval: 60000
   },
   reporters: {
-      myConsoleReporter: [{
+      consoleReporter: [
+        {
           module: 'good-squeeze',
           name: 'Squeeze',
           args: [{ 
@@ -17,10 +19,14 @@ module.exports = {
             log: '*', 
             response: '*' 
           }]
-      }, {
-          module: 'good-console'
-      }, 'stdout'],
-      myFileReporter: [{
+        }, 
+        { 
+            module: 'good-console'
+        }, 
+        'stdout'
+      ]
+      ,
+      fileReporter: [{
           module: 'good-squeeze',
           name: 'Squeeze',
           args: [{ 
@@ -30,13 +36,20 @@ module.exports = {
             log: '*', 
             response: '*'
           }]
-      }, {
-          module: 'good-squeeze',
-          name: 'SafeJson'
-      }, {
-          module: 'good-file',
-          args: ['./cp_web_log']
-      }]
+        }, 
+        {
+            module: 'good-squeeze',
+            name: 'SafeJson',
+            args: [
+                null,
+                { separator: ', \n' }
+            ]
+        }, 
+        {
+            module: 'good-file',
+            args: ['./cp_web_log']
+        }
+      ]
       // ,
       // myHTTPReporter: [{
       //     module: 'good-squeeze',
