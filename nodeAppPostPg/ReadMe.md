@@ -35,13 +35,18 @@ export PGPORT=5432
 // node env var
 export PORT=3000
 
-cd /usr/local (or wherever we put our apps)
+// go to preferred temporary area for install process
+cd /tmp
 
 git clone https://github.com/voteamerica/backend
 
-cd /voteamerica/backend/nodeAppPostPg
+cd voteamerica/backend/nodeAppPostPg
 
 npm install // (installs dependencies)
+
+copy files to /opt/carpool/web
+ 
+cd /opt/carpool/web 
 
 // start app - for basic test, ctrl-c to exit
 npm start
