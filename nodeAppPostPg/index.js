@@ -1,10 +1,52 @@
 'use strict';
 
-const Hapi    = require('hapi');
-const moment  = require('moment');
-var   Pool    = require('pg').Pool;
+const Hapi        = require('hapi');
+const moment      = require('moment');
+var   Pool        = require('pg').Pool;
 
-const config  = require('./dbInfo.js');
+const config      = require('./dbInfo.js');
+const logOptions  = require('./logInfo.js');
+
+// https://github.com/brianc/node-postgres/wiki/Client
+// new Client(string domainSocketFolder): Client
+// conn = psycopg2.connect("dbname='carpool' host='/tmp'")
+// var client = new Client('/tmp');  //looks for the socket file /tmp/.s.PGSQL.5432
+
+// postgres env vars
+// https://www.postgresql.org/docs/9.5/static/libpq-envars.html
+
+// pool use of env vars
+// https://github.com/brianc/node-pg-pool
+
+// https://www.postgresql.org/docs/9.5/static/libpq-connect.html#LIBPQ-CONNECT-HOST
+// Name of host to connect to. 
+// If this begins with a slash, it specifies Unix-domain communication rather than TCP/IP
+// communication; the value is the name of the directory in which the socket file is stored.
+///////////////////////
+// The default behavior when host is not specified is to connect to a Unix-domain socket 
+// in /tmp (or whatever socket directory was specified when PostgreSQL was built). 
+// On machines without Unix-domain sockets, the default is to connect to localhost.
+// https://github.com/brianc/node-postgres/wiki/Client#domain-socket-example
+// var client = new Client({
+//       user: 'brianc',
+//       password: 'boom!',
+//       database: 'test',
+//       host: '/tmp',
+//       port: 5313
+//     });
+
+// var client = new Client({
+//       user: '',
+//       password: '',
+//       database: 'carpool',
+//       host: '/tmp',
+//       port: 0
+//     });
+
+// export PGHOST=/tmp
+// export PGDATABASE=carpool
+
+// >> conn = psycopg2.connect("dbname='carpool' host='/tmp'")
 
 config.user       = process.env.PGUSER;
 config.database   = process.env.PGDATABASE;
@@ -12,7 +54,9 @@ config.password   = process.env.PGPASSWORD;
 config.host       = process.env.PGHOST;
 config.port       = process.env.PGPORT;
 
-const pool = new Pool(config);
+// const pool = new Pool(config);
+// not passing config causes Client() to search for env vars
+const pool = new Pool();
 const server = new Hapi.Server();
 
 const DEFAULT_PORT  = process.env.PORT || 3000;
@@ -44,11 +88,13 @@ server.route({
   path: '/',
   handler: (req, reply) => {
 
+    req.log();
+
     pool.query(dbGetQueryString(), (err, result) => {
       var firstRowAsString = "";
 
       if (err) {
-        return reply("error: " + err);
+        return reply("GET error: " + err);
       }
 
       if (result !== undefined && result.rows !== undefined) {
@@ -68,6 +114,8 @@ server.route({
   handler: (req, reply) => {
     var payload = req.payload;
 
+    req.log();
+
     console.log("payload: " + payload);
     console.log("driver zip: " + payload.DriverCollectionZIP);
 
@@ -83,6 +131,8 @@ server.route({
   handler: (req, reply) => {
     var payload = req.payload;
 
+    req.log();
+
     console.log("payload: " + payload);
     console.log("rider zip: " + payload.RiderCollectionZIP);
 
@@ -92,12 +142,35 @@ server.route({
   }
 });
 
-server.start(err => {
-  if (err) {
-      throw err;
-  }
+server.register({
+    register: require('good'),
+    logOptions
+  },
+  err => {
+    if (err) {
+      return console.error(err);
+    }
 
-  console.log(`Server running at: ${server.info.uri}`);
+    server.start(err => {
+      if (err) {
+          throw err;
+      }
+
+      console.log(`Server running at: ${server.info.uri}`);
+    });
+  }
+);
+
+// from https://github.com/hapijs/good/issues/117
+server.on('request', function (request, event, tags) {
+
+  // Include the Requestor's IP Address on every log
+  if( !event.remoteAddress ) event.remoteAddress = request.headers['x-forwarded-for'] || request.info.remoteAddress;
+
+  // Put the first part of the URL into the tags
+  if(request && request.url && event && event.tags) event.tags.push(request.url.path.split('/')[1]);
+
+  console.log('%j', event) ;
 });
 
 pool.on('error', (err, client) => {
@@ -221,3 +294,4 @@ function getDriverPayloadAsArray(payload) {
       //   "PleaseStayInTouch" boolean NOT NULL DEFAULT false
     ]
 }
+
