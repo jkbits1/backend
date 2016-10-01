@@ -18,14 +18,18 @@ Use testPage.html (and linked testPageScript.js) to test app
 STEPS TO INSTALL ON LINUX
 #########################  
 
-ENV VARS REQUIRED (will change for carpool_web account, using for now)
+ENV VARS REQUIRED 
 
-// db env vars
+// db env vars - tcp
 export PGHOST=ip
 export PGUSER=username
 export PGDATABASE=dbname
 export PGPASSWORD=pwd
 export PGPORT=5432
+
+// db env vars - socket
+// export PGHOST=/tmp
+// export PGDATABASE=carpool
 
 // node env var
 export PORT=3000
