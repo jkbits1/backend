@@ -51,30 +51,14 @@ server.route({
   method: 'GET',
   path: '/',
   handler: (req, reply) => {
-    var queryString =  dbGetQueryString();
+    var results = {
+      success: 'GET carpool: ',
+      failure: 'GET error: ' 
+    };
 
     req.log();
 
-    pool.query( queryString )
-    .then(result => {
-      var firstRowAsString = "";
-
-      if (result !== undefined && result.rows !== undefined) {
-
-        // result.rows.forEach( val => console.log(val));
-        firstRowAsString = JSON.stringify(result.rows[0]);
-      }
-
-      reply('GET carpool: ' + firstRowAsString);
-    })
-    .catch(e => {
-      var message = e.message || '';
-      var stack   = e.stack   || '';
-
-      console.error('GET error: ', message, stack);
-
-      reply("GET error: " + message).code(500);
-    });
+    dbGetData(pool, dbGetQueryString, reply, results);
   }
 });
 
@@ -179,6 +163,31 @@ pool.on('error', (err, client) => {
     console.error("db err: " + err);
   } 
 });
+
+function dbGetData(pool, fnGetString, reply, results) {
+    var queryString =  fnGetString();
+
+    pool.query( queryString )
+    .then(result => {
+      var firstRowAsString = "";
+
+      if (result !== undefined && result.rows !== undefined) {
+
+        // result.rows.forEach( val => console.log(val));
+        firstRowAsString = JSON.stringify(result.rows[0]);
+      }
+
+      reply(results.success + firstRowAsString);
+    })
+    .catch(e => {
+      var message = e.message || '';
+      var stack   = e.stack   || '';
+
+      console.error(results.failure, message, stack);
+
+      reply(results.failure + message).code(500);
+    });
+}
 
 function dbInsertData(payload, pool, fnInsertString, fnPayloadArray,
                         reply, results) {
