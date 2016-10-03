@@ -51,15 +51,13 @@ server.route({
   method: 'GET',
   path: '/',
   handler: (req, reply) => {
+    var queryString =  dbGetQueryString();
 
     req.log();
 
-    pool.query(dbGetQueryString(), (err, result) => {
+    pool.query( queryString )
+    .then(result => {
       var firstRowAsString = "";
-
-      if (err) {
-        return reply("GET error: " + err);
-      }
 
       if (result !== undefined && result.rows !== undefined) {
 
@@ -68,6 +66,14 @@ server.route({
       }
 
       reply('get received at carpool' + firstRowAsString);
+    })
+    .catch(e => {
+      var message = e.message || '';
+      var stack   = e.stack   || '';
+
+      console.error('GET error: ', message, stack);
+
+      reply("GET error: " + message).code(500);
     });
   }
 });
