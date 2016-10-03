@@ -72,20 +72,33 @@ server.route({
   }
 });
 
+function getResultStrings(tableName) {
+    var resultStrings = {
+      success: ' row inserted',
+      failure: ' row insert failed' 
+    }
+
+    resultStrings.success = tableName + resultStrings.success; 
+    resultStrings.failure = tableName + resultStrings.failure; 
+
+    return resultStrings;
+}
+
 server.route({
   method: 'POST',
   path: '/' + DRIVER_ROUTE,
   handler: (req, reply) => {
     var payload = req.payload;
+    var results = getResultStrings(DRIVER_ROUTE);
 
     req.log();
 
     console.log("driver payload: " + JSON.stringify(payload, null, 4));
     console.log("driver zip: " + payload.DriverCollectionZIP);
 
-    dbInsertData(payload, pool, dbGetInsertDriverString, getDriverPayloadAsArray);
-
-    reply('driver row inserted');
+    dbInsertData(payload, pool, dbGetInsertDriverString, 
+                  getDriverPayloadAsArray,
+                  reply, results);
   }
 });
 
@@ -94,15 +107,16 @@ server.route({
   path: '/' + RIDER_ROUTE,
   handler: (req, reply) => {
     var payload = req.payload;
+    var results = getResultStrings(RIDER_ROUTE);
 
     req.log();
 
     console.log("rider payload: " + JSON.stringify(payload, null, 4));
     console.log("rider zip: " + payload.RiderCollectionZIP);
 
-    dbInsertData(payload, pool, dbGetInsertRiderString, getRiderPayloadAsArray);
-
-    reply('rider row inserted');
+    dbInsertData(payload, pool, dbGetInsertRiderString, 
+                  getRiderPayloadAsArray,
+                  reply, results);
   }
 });
 
@@ -130,7 +144,7 @@ server.register({
   }
 );
 
-server.on('request', function (request, event, tags) {
+server.on('request', (request, event, tags) => {
 
   // Include the Requestor's IP Address on every log
   if( !event.remoteAddress ) {
@@ -145,22 +159,23 @@ server.on('request', function (request, event, tags) {
   console.log('server req: %j', event) ;
 });
 
-server.on('response', function (request) {
-    console.log(
-        "server resp: " 
-      + request.info.remoteAddress 
-      + ': ' + request.method.toUpperCase() 
-      + ' ' + request.url.path 
-      + ' --> ' + request.response.statusCode);
+server.on('response', (request) => {  
+  console.log(
+      "server resp: " 
+    + request.info.remoteAddress 
+    + ': ' + request.method.toUpperCase() 
+    + ' ' + request.url.path 
+    + ' --> ' + request.response.statusCode);
 });
 
 pool.on('error', (err, client) => {
   if (err) {
-    console.error("db err" + err);
+    console.error("db err: " + err);
   } 
 });
 
-function dbInsertData(payload, pool, fnInsertString, fnPayloadArray) {
+function dbInsertData(payload, pool, fnInsertString, fnPayloadArray,
+                        reply, results) {
   var insertString = fnInsertString();
 
   pool.query(
@@ -168,20 +183,19 @@ function dbInsertData(payload, pool, fnInsertString, fnPayloadArray) {
     fnPayloadArray(payload)
   )
   .then(result => {
-    if (result !== undefined) {
-      console.log('insert: ', result)
-    }
-    else {
-      console.error('insert made')
-    }
+    var displayResult = result || '';
+
+    console.log('insert: ', displayResult);
+
+    reply(results.success);
   })
   .catch(e => {
-    if (e !== undefined && e.message !== undefined && e.stack !== undefined) {
-      console.error('query error', e.message, e.stack)
-    }
-    else {
-      console.error('query error.')
-    }
+    var message = e.message || '';
+    var stack   = e.stack   || '';
+
+    console.error('query error: ', message, stack);
+
+    reply(results.failure + ': ' + message).code(500);
   });
 }
 
