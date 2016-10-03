@@ -65,7 +65,7 @@ server.route({
         firstRowAsString = JSON.stringify(result.rows[0]);
       }
 
-      reply('get received at carpool' + firstRowAsString);
+      reply('GET carpool: ' + firstRowAsString);
     })
     .catch(e => {
       var message = e.message || '';
