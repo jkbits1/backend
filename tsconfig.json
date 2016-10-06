@@ -6,6 +6,7 @@
     },
     "exclude": [
         "node_modules",
+        "sweeper/sql-call.ts",
         "sweeper/node_modules",
         "sweeper/typings"
     ]
