@@ -9,43 +9,68 @@ const pool = new Pool({
 });
 
 const SCHEMA_NAME   = 'stage';
-const SWEEPER_FUNCTION  = 'create_riders()';
+const SWEEPER_RIDERS_FUNCTION  = 'create_riders()';
+const SWEEPER_DRIVERS_FUNCTION  = 'create_drivers()';
+
+var currentFunction = 0;
 
 setInterval(() => {
-    dbGetData(pool, dbGetNewItemsQueryString);
+  dbGetData
+    (
+      pool, 
+      [ dbExecuteRidersFunctionString,
+        dbExecuteDriversFunctionString      
+      ]
+    );
   },
   DELAY
 );
 
-function dbGetNewItemsQueryString () {
-  return 'select ' + SCHEMA_NAME + '.' + SWEEPER_FUNCTION;
+function dbExecuteRidersFunctionString () {
+  return 'select ' + SCHEMA_NAME + '.' + SWEEPER_RIDERS_FUNCTION;
 }
 
-function dbGetData(pool, fnGetString) {
-    var queryString =  fnGetString();
+function dbExecuteDriversFunctionString () {
+  return 'select ' + SCHEMA_NAME + '.' + SWEEPER_DRIVERS_FUNCTION;
+}
 
-    pool.query( queryString )
-    .then(result => {
-      var firstRowAsString = "";
+function dbGetData (pool, executeFunctionArray) {
+  
+  var fnExecuteFunction = executeFunctionArray[currentFunction++];
 
-      if (result !== undefined && result.rows !== undefined) {
+  if (currentFunction >= executeFunctionArray.length) {
+    currentFunction = 0; 
+  }
 
-        // result.rows.forEach( val => console.log(val));
-        result.rows.forEach(val => console.log("select: " + JSON.stringify(val)));
-        firstRowAsString = JSON.stringify(result.rows[0]);
-      }
-      console.error("executed query: " + firstRowAsString);
+  console.log("array len : " + executeFunctionArray.length);
+  console.log("fn index: " + currentFunction);
 
-      // reply(results.success + firstRowAsString);
-    })
-    .catch(e => {
-      var message = e.message || '';
-      var stack   = e.stack   || '';
+  var queryString =  fnExecuteFunction();
 
-      console.error(
-        // results.failure, 
-        message, stack);
+  console.log("queryString: " + queryString);
 
-      // reply(results.failure + message).code(500);
-    });
+  pool.query( queryString )
+  .then(result => {
+    var firstRowAsString = "";
+
+    if (result !== undefined && result.rows !== undefined) {
+
+      // result.rows.forEach( val => console.log(val));
+      result.rows.forEach(val => console.log("select: " + JSON.stringify(val)));
+      firstRowAsString = JSON.stringify(result.rows[0]);
+    }
+    console.error("executed query: " + firstRowAsString);
+
+    // reply(results.success + firstRowAsString);
+  })
+  .catch(e => {
+    var message = e.message || '';
+    var stack   = e.stack   || '';
+
+    console.error(
+      // results.failure, 
+      message, stack);
+
+    // reply(results.failure + message).code(500);
+  });
 }

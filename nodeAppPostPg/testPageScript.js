@@ -2,6 +2,7 @@ var remoteUrl = "http://localhost:8000";
 
 var testZipCode = 60001;
 var testAreaCode = 246;
+var needWheelchair = true;
 
 function sendDriverForm() {
   var formData  = new FormData();
@@ -55,8 +56,8 @@ function sendRiderForm() {
   formData.append("RiderEmail", 'jn@t.com');
 
   formData.append("RiderPhone", 
-    '246'
-    // (testAreaCode++).toString()
+    // '246'
+    (testAreaCode++).toString()
     );
   formData.append("RiderAreaCode", 123);
   formData.append("RiderEmailValidated", false);
@@ -78,7 +79,13 @@ function sendRiderForm() {
   formData.append("RiderWillNotTalkPolitics", true);
   formData.append("ReadyToMatch", false);
   formData.append("PleaseStayInTouch", true);
-  formData.append("NeedWheelchair", true);
+  formData.append("NeedWheelchair", needWheelchair);
+  if (needWheelchair == true) {
+    needWheelchair = false;
+  }
+  else {
+    needWheelchair = true;
+  }
 
   var request = new XMLHttpRequest();
 
