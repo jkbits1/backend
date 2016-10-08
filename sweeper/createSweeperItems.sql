@@ -176,3 +176,21 @@ $$ LANGUAGE plpgsql;
 
 GRANT ALL ON FUNCTION stage.create_drivers() TO carpool_admins;
 GRANT EXECUTE ON FUNCTION stage.create_drivers() TO carpool_role;
+
+CREATE TABLE nov2016.driver_available_times
+(
+  "DriverID" integer NOT NULL DEFAULT nextval('nov2016."DRIVER_DriverID_seq"'::regclass),
+  "RideDate" date,
+  "RideTimeStart" time with time zone,
+  "RideTimeEnd" time with time zone,
+  CONSTRAINT driver_available_times_driver_DriverID_fkey FOREIGN KEY ("DriverID")
+      REFERENCES nov2016.driver ("DriverID") MATCH SIMPLE
+      ON UPDATE NO ACTION ON DELETE NO ACTION
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE nov2016.driver_available_times
+  OWNER TO carpool_admins;
+GRANT ALL ON TABLE nov2016.driver TO carpool_admins;
+GRANT ALL ON TABLE nov2016.driver TO carpool_role;
