@@ -134,29 +134,24 @@ BEGIN
     INSERT INTO 
       nov2016.driver 
         (
-        "DriverID", "Name"
-        -- , "Phone", "Email", "EmailValidated",
-        -- "State", "City", "Notes", "DataEntryPoint", "VulnerablePopulation",
-        -- "NeedsWheelChair", "Active"
+        "DriverID", "Name", "Phone", "Email", "State", "City", "Origin",
+        "Seats", "CreatedBy", 
+        "EmailValidated", "DriverHasInsurance", "DriverWheelchair"
         )     
     SELECT
       stage.status_driver."DriverID",
       concat_ws(' ', 
                 stage.websubmission_driver."DriverFirstName"::text, 
-                stage.websubmission_driver."DriverLastName"::text) 
-      -- ,
-      -- stage.websubmission_rider."RiderPhone",
-      -- stage.websubmission_rider."RiderEmail",
-      -- stage.websubmission_rider."RiderEmailValidated"::int::bit,
+                stage.websubmission_driver."DriverLastName"::text),
+      stage.websubmission_driver."DriverPhone",
+      stage.websubmission_driver."DriverEmail",
+      'State?', 'City?', 'Origin?',
 
-      -- stage.websubmission_rider."RiderVotingState",
-      -- 'city?',
-      -- 'notes?',
-      -- 'entry?',
-      -- stage.websubmission_rider."RiderIsVulnerable"::int::bit,
-
-      -- stage.websubmission_rider."WheelchairCount"::bit,
-      -- true::int::bit
+      stage.websubmission_driver."SeatCount",
+      'sweeper',
+      stage.websubmission_driver."DriverEmailValidated",
+      stage.websubmission_driver."DriverHasInsurance",
+      stage.websubmission_driver."DriverCanLoadRiderWithWheelchair"
     FROM 
       stage.websubmission_driver
     INNER JOIN 
@@ -174,9 +169,6 @@ BEGIN
     WHERE
           stage.status_driver."TimeStamp" > tstamp 
       AND stage.status_driver.status = 1;
-
-    -- RAISE EXCEPTION 'Nonexistent ID --> %', user_id
-    --   USING HINT = 'Please check your user ID';
 
     RETURN tstamp;
 END;

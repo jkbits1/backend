@@ -2,6 +2,7 @@ var remoteUrl = "http://localhost:8000";
 
 var testZipCode = 60001;
 var testAreaCode = 246;
+var testDriverAreaCode = 346;
 var needWheelchair = true;
 
 function sendDriverForm() {
@@ -27,7 +28,10 @@ function sendDriverForm() {
   formData.append("PermissionCanRunBackgroundCheck", true);
 
   formData.append("DriverEmail", 'jn@t.com');
-  formData.append("DriverPhone", '246');
+  formData.append("DriverPhone", 
+    // '246'
+    (testAreaCode++).toString()
+    );
   formData.append("DriverAreaCode", 123);
   formData.append("DriverEmailValidated", false);              
   formData.append("DriverPhoneValidated", true);
