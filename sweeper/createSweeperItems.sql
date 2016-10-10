@@ -7,10 +7,24 @@ CREATE TABLE stage.status_rider
 WITH (
   OIDS=FALSE
 );
-ALTER TABLE stage.websubmission_rider
+ALTER TABLE stage.status_rider
   OWNER TO carpool_admins;
-GRANT ALL ON TABLE stage.websubmission_rider TO carpool_admins;
-GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE stage.websubmission_rider TO carpool_role;
+GRANT ALL ON TABLE stage.status_rider TO carpool_admins;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE stage.status_rider TO carpool_role;
+
+CREATE TABLE stage.status_driver
+( 
+  "DriverID" integer NOT NULL DEFAULT nextval('nov2016."DRIVER_DriverID_seq"'::regclass),
+  "status" integer NOT NULL DEFAULT 1,
+  "TimeStamp" timestamp without time zone NOT NULL
+)
+WITH (
+  OIDS=FALSE
+);
+ALTER TABLE stage.status_driver
+  OWNER TO carpool_admins;
+GRANT ALL ON TABLE stage.status_driver TO carpool_admins;
+GRANT SELECT, UPDATE, INSERT, DELETE ON TABLE stage.status_driver TO carpool_role;
 
 CREATE TABLE stage.status_driver
 ( 
@@ -192,5 +206,5 @@ WITH (
 );
 ALTER TABLE nov2016.driver_available_times
   OWNER TO carpool_admins;
-GRANT ALL ON TABLE nov2016.driver TO carpool_admins;
-GRANT ALL ON TABLE nov2016.driver TO carpool_role;
+GRANT ALL ON TABLE nov2016.driver_available_times TO carpool_admins;
+GRANT ALL ON TABLE nov2016.driver_available_times TO carpool_role;

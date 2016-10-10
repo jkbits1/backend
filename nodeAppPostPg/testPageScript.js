@@ -30,7 +30,7 @@ function sendDriverForm() {
   formData.append("DriverEmail", 'jn@t.com');
   formData.append("DriverPhone", 
     // '246'
-    (testAreaCode++).toString()
+    (testDriverAreaCode++).toString()
     );
   formData.append("DriverAreaCode", 123);
   formData.append("DriverEmailValidated", false);              

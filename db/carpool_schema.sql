@@ -52,6 +52,20 @@ CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
 COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
 
 
+--
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+
+
 SET search_path = nov2016, pg_catalog;
 
 --
@@ -123,6 +137,90 @@ $$;
 
 
 ALTER FUNCTION public.distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) OWNER TO carpool_admins;
+
+SET search_path = stage, pg_catalog;
+
+--
+-- Name: create_riders(); Type: FUNCTION; Schema: stage; Owner: carpool_admins
+--
+
+CREATE FUNCTION create_riders() RETURNS timestamp without time zone
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+   tstamp timestamp := '2000-01-01';
+BEGIN
+   RAISE NOTICE 'tstamp here is %', tstamp; 
+    -- get timestamp of unprocessed riders 
+    IF EXISTS (select 1 from stage.status_rider) THEN
+      select MAX("CreatedTimeStamp") into tstamp from stage.status_rider;
+    ELSE 
+      tstamp := '2010-01-01';
+    END IF;
+
+    -- create intermediate table of timestamps, processed flag and driverId
+    INSERT INTO 
+      stage.status_rider ("CreatedTimeStamp")     
+    SELECT 
+      "CreatedTimeStamp" FROM stage.websubmission_rider 
+    WHERE 
+      "CreatedTimeStamp" > tstamp;
+
+    -- create riders in nov2016 db
+    -- only insert riders in intermediate tables, and with status == 1
+    -- ?? timestamp to be creation of nov2016 row, or original submission ??
+    INSERT INTO 
+      nov2016.rider 
+        (
+        "RiderID", "Name", "Phone", "Email", "EmailValidated",
+        "State", "City", "Notes", "DataEntryPoint", "VulnerablePopulation",
+        "NeedsWheelChair", "Active"
+        )     
+    SELECT
+      stage.status_rider."RiderID",
+      concat_ws(' ', 
+                stage.websubmission_rider."RiderFirstName"::text, 
+                stage.websubmission_rider."RiderLastName"::text) 
+      ,
+      stage.websubmission_rider."RiderPhone",
+      stage.websubmission_rider."RiderEmail",
+      stage.websubmission_rider."RiderEmailValidated"::int::bit,
+
+      stage.websubmission_rider."RiderVotingState",
+      'city?',
+      'notes?',
+      'entry?',
+      stage.websubmission_rider."RiderIsVulnerable"::int::bit,
+
+      stage.websubmission_rider."WheelchairCount"::bit,
+      true::int::bit
+    FROM 
+      stage.websubmission_rider
+    INNER JOIN 
+      stage.status_rider 
+    ON 
+      (stage.websubmission_rider."CreatedTimeStamp" = stage.status_rider."CreatedTimeStamp") 
+    WHERE 
+          stage.websubmission_rider."CreatedTimeStamp" > tstamp 
+      AND stage.status_rider.status = 1;
+    
+    UPDATE 
+      stage.status_rider
+    SET
+      status = 100
+    WHERE
+          stage.status_rider."CreatedTimeStamp" > tstamp 
+      AND stage.status_rider.status = 1;
+
+    -- RAISE EXCEPTION 'Nonexistent ID --> %', user_id
+    --   USING HINT = 'Please check your user ID';
+
+    RETURN tstamp;
+END;
+$$;
+
+
+ALTER FUNCTION stage.create_riders() OWNER TO carpool_admins;
 
 SET search_path = nov2016, pg_catalog;
 
@@ -424,6 +522,19 @@ ALTER TABLE zipcode_dist OWNER TO carpool_admins;
 SET search_path = stage, pg_catalog;
 
 --
+-- Name: status_rider; Type: TABLE; Schema: stage; Owner: carpool_admins
+--
+
+CREATE TABLE status_rider (
+    "RiderID" integer DEFAULT nextval('nov2016."RIDER_RiderID_seq"'::regclass) NOT NULL,
+    status integer DEFAULT 1 NOT NULL,
+    "CreatedTimeStamp" timestamp without time zone NOT NULL
+);
+
+
+ALTER TABLE status_rider OWNER TO carpool_admins;
+
+--
 -- Name: sweep_status; Type: TABLE; Schema: stage; Owner: carpool_admins
 --
 
@@ -465,7 +576,9 @@ CREATE TABLE websubmission_driver (
     "RidersCanSeeDriverDetails" boolean DEFAULT false NOT NULL,
     "DriverWillNotTalkPolitics" boolean DEFAULT false NOT NULL,
     "ReadyToMatch" boolean DEFAULT false NOT NULL,
-    "PleaseStayInTouch" boolean DEFAULT false NOT NULL
+    "PleaseStayInTouch" boolean DEFAULT false NOT NULL,
+    "VehicleRegistrationNumber" character varying(255),
+    "UUID" character varying(50) DEFAULT public.gen_random_uuid() NOT NULL
 );
 
 
@@ -479,8 +592,9 @@ CREATE TABLE websubmission_helper (
     "timestamp" timestamp without time zone NOT NULL,
     helpername character varying(100) NOT NULL,
     helperemail character varying(250) NOT NULL,
-    helpercapability character varying(50)[],
-    sweep_status_id integer DEFAULT '-1'::integer NOT NULL
+    helpercapability character varying(500)[],
+    sweep_status_id integer DEFAULT '-1'::integer NOT NULL,
+    "UUID" character varying(50) DEFAULT public.gen_random_uuid() NOT NULL
 );
 
 
@@ -506,13 +620,16 @@ CREATE TABLE websubmission_rider (
     "AvailableRideTimesJSON" character varying(2000),
     "TotalPartySize" integer,
     "TwoWayTripNeeded" boolean DEFAULT false NOT NULL,
-    "RiderPreferredContactMethod" integer,
     "RiderIsVulnerable" boolean DEFAULT false NOT NULL,
     "DriverCanContactRider" boolean DEFAULT false NOT NULL,
     "RiderWillNotTalkPolitics" boolean DEFAULT false NOT NULL,
-    "ReadyToMatch" boolean DEFAULT false NOT NULL,
     "PleaseStayInTouch" boolean DEFAULT false NOT NULL,
-    "NeedWheelchair" boolean DEFAULT false NOT NULL
+    "NeedWheelchair" boolean DEFAULT false NOT NULL,
+    "RiderPreferredContactMethod" character varying(20),
+    "RiderAccommodationNotes" character varying(1000),
+    "RiderLegalConsent" boolean,
+    "ReadyToMatch" boolean,
+    "UUID" character varying(50) DEFAULT public.gen_random_uuid() NOT NULL
 );
 
 
@@ -622,6 +739,30 @@ ALTER TABLE ONLY match_status
 SET search_path = stage, pg_catalog;
 
 --
+-- Name: driver_pk; Type: CONSTRAINT; Schema: stage; Owner: carpool_admins
+--
+
+ALTER TABLE ONLY websubmission_driver
+    ADD CONSTRAINT driver_pk PRIMARY KEY ("UUID");
+
+
+--
+-- Name: helper_pk; Type: CONSTRAINT; Schema: stage; Owner: carpool_admins
+--
+
+ALTER TABLE ONLY websubmission_helper
+    ADD CONSTRAINT helper_pk PRIMARY KEY ("UUID");
+
+
+--
+-- Name: rider_pk; Type: CONSTRAINT; Schema: stage; Owner: carpool_admins
+--
+
+ALTER TABLE ONLY websubmission_rider
+    ADD CONSTRAINT rider_pk PRIMARY KEY ("UUID");
+
+
+--
 -- Name: sweep_status_pkey; Type: CONSTRAINT; Schema: stage; Owner: carpool_admins
 --
 
@@ -671,16 +812,6 @@ ALTER TABLE ONLY requested_ride
     ADD CONSTRAINT "REQUESTED_RIDE_RiderID_fkey" FOREIGN KEY ("RiderID") REFERENCES rider("RiderID");
 
 
-SET search_path = stage, pg_catalog;
-
---
--- Name: websubmission_helper_sweep_status_id_fkey; Type: FK CONSTRAINT; Schema: stage; Owner: carpool_admins
---
-
-ALTER TABLE ONLY websubmission_helper
-    ADD CONSTRAINT websubmission_helper_sweep_status_id_fkey FOREIGN KEY (sweep_status_id) REFERENCES sweep_status(id);
-
-
 --
 -- Name: nov2016; Type: ACL; Schema: -; Owner: postgres
 --
@@ -713,51 +844,40 @@ GRANT USAGE ON SCHEMA stage TO carpool_web_role;
 GRANT ALL ON SCHEMA stage TO carpool_admins;
 
 
+--
+-- Name: cancel_ride_by_rider(integer, integer); Type: ACL; Schema: nov2016; Owner: carpool_admins
+--
+
+REVOKE ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) FROM carpool_admins;
+GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO carpool_admins;
+GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO carpool_role;
+
+
+--
+-- Name: distance(double precision, double precision, double precision, double precision); Type: ACL; Schema: nov2016; Owner: carpool_admins
+--
+
+REVOKE ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) FROM PUBLIC;
+REVOKE ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) FROM carpool_admins;
+GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO carpool_admins;
+GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO PUBLIC;
+GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO carpool_role;
+
+
+SET search_path = stage, pg_catalog;
+
+--
+-- Name: create_riders(); Type: ACL; Schema: stage; Owner: carpool_admins
+--
+
+REVOKE ALL ON FUNCTION create_riders() FROM PUBLIC;
+REVOKE ALL ON FUNCTION create_riders() FROM carpool_admins;
+GRANT ALL ON FUNCTION create_riders() TO carpool_admins;
+GRANT ALL ON FUNCTION create_riders() TO carpool_role;
+
+
 SET search_path = nov2016, pg_catalog;
-
---
--- Name: cancel_ride_by_rider(integer, integer); Type: ACL; Schema: nov2016; Owner: carpool_admins
---
-
-REVOKE ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) FROM carpool_admins;
-GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO carpool_admins;
-GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO PUBLIC;
-GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO carpool_role;
-
-
---
--- Name: distance(double precision, double precision, double precision, double precision); Type: ACL; Schema: nov2016; Owner: carpool_admins
---
-
-REVOKE ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) FROM PUBLIC;
-REVOKE ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) FROM carpool_admins;
-GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO carpool_admins;
-GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO PUBLIC;
-GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO carpool_role;
-
-
---
--- Name: cancel_ride_by_rider(integer, integer); Type: ACL; Schema: nov2016; Owner: carpool_admins
---
-
-REVOKE ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) FROM PUBLIC;
-REVOKE ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) FROM carpool_admins;
-GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO carpool_admins;
-GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO PUBLIC;
-GRANT ALL ON FUNCTION cancel_ride_by_rider("RiderID" integer, "RequestedRideID" integer) TO carpool_role;
-
-
---
--- Name: distance(double precision, double precision, double precision, double precision); Type: ACL; Schema: nov2016; Owner: carpool_admins
---
-
-REVOKE ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) FROM PUBLIC;
-REVOKE ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) FROM carpool_admins;
-GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO carpool_admins;
-GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO PUBLIC;
-GRANT ALL ON FUNCTION distance(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision) TO carpool_role;
-
 
 --
 -- Name: driver; Type: ACL; Schema: nov2016; Owner: carpool_admins
@@ -892,6 +1012,16 @@ GRANT ALL ON TABLE zipcode_dist TO carpool_role;
 SET search_path = stage, pg_catalog;
 
 --
+-- Name: status_rider; Type: ACL; Schema: stage; Owner: carpool_admins
+--
+
+REVOKE ALL ON TABLE status_rider FROM PUBLIC;
+REVOKE ALL ON TABLE status_rider FROM carpool_admins;
+GRANT ALL ON TABLE status_rider TO carpool_admins;
+GRANT ALL ON TABLE status_rider TO carpool_role;
+
+
+--
 -- Name: sweep_status; Type: ACL; Schema: stage; Owner: carpool_admins
 --
 
@@ -910,6 +1040,17 @@ REVOKE ALL ON TABLE websubmission_driver FROM carpool_admins;
 GRANT ALL ON TABLE websubmission_driver TO carpool_admins;
 GRANT INSERT ON TABLE websubmission_driver TO carpool_web_role;
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE websubmission_driver TO carpool_role;
+
+
+--
+-- Name: websubmission_helper; Type: ACL; Schema: stage; Owner: carpool_admins
+--
+
+REVOKE ALL ON TABLE websubmission_helper FROM PUBLIC;
+REVOKE ALL ON TABLE websubmission_helper FROM carpool_admins;
+GRANT ALL ON TABLE websubmission_helper TO carpool_admins;
+GRANT INSERT ON TABLE websubmission_helper TO carpool_web_role;
+GRANT ALL ON TABLE websubmission_helper TO carpool_role;
 
 
 --
