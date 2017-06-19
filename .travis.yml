@@ -1,7 +1,9 @@
 ---
 # Use Ubuntu 'trusty' distribution
 sudo: required
-# dist: trusty
+dist: trusty
+
+group: edge
 
 # may be a useful refactor at some point
 # https://docs.travis-ci.com/user/docker/
