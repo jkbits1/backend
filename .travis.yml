@@ -36,18 +36,18 @@ before_script:
 
   - cd ./docker
 
-  - ./specific-machine-test-travis.sh cp-test-runner R $TRAVIS_REPO_SLUG $TRAVIS_BRANCH $TRAVIS_EVENT_TYPE $TRAVIS_PULL_REQUEST_SLUG $TRAVIS_PULL_REQUEST_BRANCH
-  - ./specific-machine-test-travis.sh cp-nodejs      R $TRAVIS_REPO_SLUG $TRAVIS_BRANCH $TRAVIS_EVENT_TYPE $TRAVIS_PULL_REQUEST_SLUG $TRAVIS_PULL_REQUEST_BRANCH
-  - ./specific-machine-test-travis.sh cp-pg-server   R $TRAVIS_REPO_SLUG $TRAVIS_BRANCH $TRAVIS_EVENT_TYPE $TRAVIS_PULL_REQUEST_SLUG $TRAVIS_PULL_REQUEST_BRANCH
+  - ./docker/specific-machine-test-travis.sh cp-test-runner R $TRAVIS_REPO_SLUG $TRAVIS_BRANCH $TRAVIS_EVENT_TYPE $TRAVIS_PULL_REQUEST_SLUG $TRAVIS_PULL_REQUEST_BRANCH
+  - ./docker/specific-machine-test-travis.sh cp-nodejs      R $TRAVIS_REPO_SLUG $TRAVIS_BRANCH $TRAVIS_EVENT_TYPE $TRAVIS_PULL_REQUEST_SLUG $TRAVIS_PULL_REQUEST_BRANCH
+  - ./docker/specific-machine-test-travis.sh cp-pg-server   R $TRAVIS_REPO_SLUG $TRAVIS_BRANCH $TRAVIS_EVENT_TYPE $TRAVIS_PULL_REQUEST_SLUG $TRAVIS_PULL_REQUEST_BRANCH
 
-  - docker-compose -f ./compose/full-stack-test/docker-compose-test.yml up -d
+  - docker-compose -f ./docker/compose/full-stack-test/docker-compose-test.yml up -d
 
 # permissions needed, two suggestions here
 # https://stackoverflow.com/questions/42154912/permission-denied-for-build-sh-file
 # https://stackoverflow.com/questions/10516201/updating-file-permissions-only-in-git
 # https://stackoverflow.com/questions/14267441/automatically-apply-git-update-index-chmodx-to-executable-files
 script:
-  - travis_retry ./compose-tests.sh pause-cancel2
+  - travis_retry ./docker/compose-tests.sh pause-cancel2
 
 after_script:
-  - docker-compose -f ./compose/full-stack-test/docker-compose-test.yml down
+  - docker-compose -f ./docker/compose/full-stack-test/docker-compose-test.yml down
