@@ -1,0 +1,19 @@
+from json, generate csv (use json2csv)
+
+in lib office, remove redundant fields
+
+    riders - city, state, org name, timezone
+
+    drivers - city, state, ,full_state,	timezone, MatchCount, TotalRiders, Overflow, SeatsAvailable, minimumTripCount
+
+
+copy csv to backup file
+  remove header line
+
+add copy stdin header to backup (from copy-stdin.csv) (fields from pgadmin select script for table, adds necessary quotes)
+  add \.
+  and blank line
+
+
+
+NOTE: seem to be duplicate drivers (same uuid)

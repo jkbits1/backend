@@ -1,0 +1,18 @@
+COPY carpoolvote.rider ("UUID","RiderFirstName","RiderEmail","RiderLastName","RiderPhone","RiderCollectionZIP","RiderDropOffZIP","AvailableRideTimesLocal","TotalPartySize","TwoWayTripNeeded","RiderIsVulnerable","RiderWillNotTalkPolitics","PleaseStayInTouch","NeedWheelchair","RiderPreferredContact","RiderAccommodationNotes","RiderLegalConsent","ReadyToMatch",created_ts,last_updated_ts,status_info,"RiderWillBeSafe","RiderCollectionStreetNumber","RiderCollectionAddress","RiderDestinationAddress",status,uuid_organization) FROM stdin WITH (FORMAT csv);
+01106c44-c719-4d49-ba73-027443419a91,Marcques,marcquesh32@gmail.com,Houston,2073123874,4901,4901,2018-11-06T06:00/2018-11-06T22:00,1,true,false,false,false,false,SMS,,false,true,2018-09-22T20:38:19.135Z,2018-09-22T20:38:23.023Z,,false,,6216 Mayflower Hill,"180 West River Road, Waterville, ME",MatchProposed,8fd36810-1ecf-437b-9c74-b5fe317a4609
+\.
+
+COPY carpoolvote.driver ("UUID", "IPAddress", "DriverCollectionZIP", "DriverCollectionRadius", 
+       "AvailableDriveTimesLocal", "DriverCanLoadRiderWithWheelchair", 
+       "SeatCount", "DriverLicenseNumber", "DriverFirstName", "DriverLastName", 
+       "DriverEmail", "DriverPhone", "DrivingOnBehalfOfOrganization", 
+       "DrivingOBOOrganizationName", "RidersCanSeeDriverDetails", "DriverWillNotTalkPolitics", 
+       "ReadyToMatch", "PleaseStayInTouch", status, created_ts, last_updated_ts, 
+       status_info, "DriverPreferredContact", "DriverWillTakeCare", 
+       uuid_organization) FROM stdin WITH (FORMAT csv);
+000c4255-cc38-4bab-91f4-408b01fb206f,12.132.53.98,60201,15,2018-11-03T09:00/2018-11-03T14:00|2018-11-06T14:00/2018-11-06T20:00,false,3,9106098,Kathleen ,Maher,maherkem@gmail.com,8473726023,true,None,false,false,true,false,Expired,2018-10-31T16:03:50.913Z,2018-11-03T14:00:06.208Z,All AvailableDriveTimes are expired,"Email,SMS",false,8fd36810-1ecf-437b-9c74-b5fe317a4609
+\.
+
+
+COPY carpoolvote.match (status,uuid_driver,uuid_rider,driver_notes,rider_notes,created_ts,last_updated_ts,score) FROM stdin WITH (FORMAT csv);
+\.
