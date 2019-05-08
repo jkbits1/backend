@@ -1,6 +1,9 @@
 # FROM jekyll/jekyll:pages
 FROM grahamc/jekyll
 
+# NOTE: adding 'sed' line as per SO answer re apt-get update failure
+# https://github.com/debuerreotype/docker-debian-artifacts/issues/66
+RUN sed -i '/jessie-updates/d' /etc/apt/sources.list  # Now archived
 RUN apt-get update
 
 # for editing 
@@ -35,8 +38,8 @@ ARG REPO=https://github.com/voteamerica/voteamerica.github.io
 WORKDIR /usr/src/app/
 
 RUN git clone --single-branch --branch $BRANCH_NAME $REPO frontend \
-&& cd $FE_PATH \
-&& git checkout $BRANCH_NAME
+  && cd $FE_PATH \
+  && git checkout $BRANCH_NAME
 
 WORKDIR $FE_PATH
 
