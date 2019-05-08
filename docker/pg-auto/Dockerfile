@@ -7,6 +7,9 @@ EXPOSE 5432
 # RUN ln -s usr/local/bin/docker-entrypoint.sh / # backwards compat
 # 
 
+# NOTE: adding 'sed' line as per SO answer re apt-get update failure
+# https://github.com/debuerreotype/docker-debian-artifacts/issues/66
+RUN sed -i '/jessie-updates/d' /etc/apt/sources.list  # Now archived
 RUN apt-get update
 RUN apt-get install -y git
 
@@ -17,8 +20,8 @@ ARG REPO=https://github.com/jkbits1/backend
 WORKDIR /usr/src/app/
 
 RUN git clone --single-branch --branch $BRANCH_NAME $REPO backend \
-&& cd /usr/src/app/backend/db \
-&& git checkout $BRANCH_NAME
+  && cd /usr/src/app/backend/db \
+  && git checkout $BRANCH_NAME
 
 WORKDIR /usr/src/app/backend/db
 
