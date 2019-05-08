@@ -8,6 +8,7 @@ EXPOSE 5432
 # 
 
 # NOTE: adding 'sed' line as per SO answer re apt-get update failure
+# https://stackoverflow.com/questions/55361762/apt-get-update-fails-with-404-in-a-previously-working-build
 # https://github.com/debuerreotype/docker-debian-artifacts/issues/66
 RUN sed -i '/jessie-updates/d' /etc/apt/sources.list  # Now archived
 RUN apt-get update
